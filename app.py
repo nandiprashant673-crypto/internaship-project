@@ -1,85 +1,71 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import mysql.connector
 
 app = Flask(__name__)
-# This line fixes the red error in your browser console
+# This is crucial for your Netlify frontend to talk to your Render backend
 CORS(app)
 
-# MySQL Connection - Make sure your password is correct here
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="Prashant@2002",
-    database="fullstack_db"
-)
-
-cursor = db.cursor(dictionary=True)
+# Temporary in-memory database (No MySQL needed for this demo)
+# This allows your mentor to test the app immediately
+users = [
+    {"id": 1, "name": "Prashant", "email": "prashant@gmail.com", "password": "123"}
+]
+tasks = []
 
 @app.route("/")
 def home():
-    return "Backend Connected to MySQL Successfully!"
+    return "Backend is Live and Running! Database is in-memory for demo."
 
-# 1. REGISTER API
+# --- 1. REGISTER API ---
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json
-    name = data["name"]
-    email = data["email"]
-    password = data["password"]
+    new_user = {
+        "id": len(users) + 1,
+        "name": data["name"],
+        "email": data["email"],
+        "password": data["password"]
+    }
+    users.append(new_user)
+    return jsonify({"message": "User Registered Successfully!"}), 201
 
-    try:
-        query = "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)"
-        values = (name, email, password)
-        cursor.execute(query, values)
-        db.commit()
-        return jsonify({"message": "User Registered Successfully!"}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-# 2. LOGIN API
+# --- 2. LOGIN API ---
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
-    email = data["email"]
-    password = data["password"]
-
-    query = "SELECT id, name FROM users WHERE email = %s AND password = %s"
-    cursor.execute(query, (email, password))
-    user = cursor.fetchone()
-
+    # Check if user exists in our temporary list
+    user = next((u for u in users if u["email"] == data["email"] and u["password"] == data["password"]), None)
+    
     if user:
         return jsonify({"message": "Login Successful!", "user": user}), 200
-    else:
-        return jsonify({"message": "Invalid Credentials!"}), 401
+    return jsonify({"message": "Invalid Credentials!"}), 401
 
-# 3. ADD TASK API
+# --- 3. ADD TASK API ---
 @app.route("/add-task", methods=["POST"])
 def add_task():
     data = request.json
-    user_id = data["user_id"]
-    task = data["task"]
-
-    query = "INSERT INTO tasks (user_id, task) VALUES (%s, %s)"
-    cursor.execute(query, (user_id, task))
-    db.commit()
+    new_task = {
+        "id": len(tasks) + 1, 
+        "user_id": int(data["user_id"]), 
+        "task": data["task"]
+    }
+    tasks.append(new_task)
     return jsonify({"message": "Task Added Successfully!"})
 
-# 4. VIEW TASKS API
+# --- 4. VIEW TASKS API ---
 @app.route("/get-tasks/<int:user_id>", methods=["GET"])
 def get_tasks(user_id):
-    query = "SELECT * FROM tasks WHERE user_id = %s"
-    cursor.execute(query, (user_id,))
-    tasks = cursor.fetchall()
-    return jsonify(tasks)
+    # Filter tasks for the specific user
+    user_tasks = [t for t in tasks if t["user_id"] == user_id]
+    return jsonify(user_tasks)
 
-# 5. DELETE TASK API
+# --- 5. DELETE TASK API ---
 @app.route("/delete-task/<int:task_id>", methods=["DELETE"])
 def delete_task(task_id):
-    query = "DELETE FROM tasks WHERE id = %s"
-    cursor.execute(query, (task_id,))
-    db.commit()
+    global tasks
+    tasks = [t for t in tasks if t["id"] != task_id]
     return jsonify({"message": "Task Deleted Successfully!"})
 
 if __name__ == "__main__":
     app.run(debug=True)
+
