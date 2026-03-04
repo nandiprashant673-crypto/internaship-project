@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Tasks</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container" style="width: 500px;">
+        <h2>My Task Manager</h2>
+        <input type="text" id="taskInput" placeholder="Enter a new task...">
+        <button onclick="addTask()" style="background-color: #007bff;">Add Task</button>
+        
+        <hr>
+        
+        <div id="taskList">
+            </div>
+        
+        <button onclick="logout()" style="background-color: #dc3545; margin-top: 20px;">Logout</button>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        // Load tasks automatically when the page opens
+        window.onload = getTasks;
+    </script>
+</body>
+</html>
